@@ -32,7 +32,7 @@ class Database
             $this->gender = $gender;
             $this->city_birthday = $city_birthday;
         } else {
-            $query = "SELECT * FROM users";
+            $query = "SELECT * FROM `users`";
             if ($result = $this->connection()->query($query)) {
                 foreach ($result as $row) {
                     $this->id = $row["id"];
@@ -45,19 +45,20 @@ class Database
                 }
                 $result->free();
             } else {
-                echo "Ошибка: " . $this->connection()->error;
+                echo "Ошибка: " . self::connection()->error;
             }
-            $this->connection()->close();
         }
+        self::connection()->close();
     }
 
-    private function connection()
+    static function connection()
     {
         $db = mysqli_connect(
-            'hosting',
-            'admin',
-            'qwerty',
-            'mydatabase',
+            'localhost',
+            'root',
+            'root',
+            'users',
+            '3306',
         ) or die('Error in established MySQL-server connect');
         return $db;
     }
@@ -75,21 +76,57 @@ class Database
         return $gender ? 'муж' : 'жен';
     }
 
-    function saveIndex($id, $name, $surname, $date_birthday, $gender, $city_birthday)
+    static function createTable()
     {
-        $query = "INSERT INTO users (id, name, surname, date_birthday, gender, city_birthday) VALUES ('$id', '$name', '$surname', '$date_birthday', '$gender', '$city_birthday')";
-        $this->interactionDb($this->connection(), $query);
+        $conn = self::connection();
+
+        $sql = "CREATE TABLE users (
+            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(30) NULL,
+            surname VARCHAR(30) NULL,
+            date_birthday DATE NULL,
+            gender ENUM('0','1') NULL,
+            city_birthday VARCHAR(50) NULL
+                   )";
+
+        if (mysqli_query($conn, $sql)) {
+            echo "Table 'users' created successfully";
+        } else {
+            echo "Error creating table: " . mysqli_error($conn);
+        }
+
+        mysqli_close($conn);
     }
 
-    private function interactionDb($connection, $query): void
+    function saveIndex()
     {
-        mysqli_query($connection, $query) or die ('Error in query to database');
+        $query = "INSERT INTO `users` (
+                     id, 
+                     name, 
+                     surname, 
+                     date_birthday, 
+                     gender, 
+                     city_birthday) 
+                    VALUES (
+                            '$this->id', 
+                            '$this->name', 
+                            '$this->surname', 
+                            '$this->date_birthday', 
+                            '$this->gender', 
+                            '$this->city_birthday'
+                            )";
+        $this->interactionDb(self::connection(), $query);
+    }
+
+    private function interactionDb($connection, $query)
+    {
+        mysqli_query($connection, $query) or die ('Error in query to database') . mysqli_error($connection);
         mysqli_close($connection);
     }
 
     function deleteIndex($id)
     {
-        $query = "DELETE FROM users WHERE id = '$id'";
+        $query = "DELETE FROM `users` WHERE `id` = '$id'";
         $this->interactionDb($this->connection(), $query);
     }
 
